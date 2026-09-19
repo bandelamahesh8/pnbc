@@ -1,0 +1,150 @@
+{
+  "scenario_1_pdf_upload": {
+    "document_id": "ae0f369b-f857-4faa-b42d-779d42718dd0",
+    "status": "COMPLETED",
+    "question_count": 3,
+    "sample_question": {
+      "question_number": "1",
+      "question_text": "Which of the following data structures operates on a Last-In, First-Out (LIFO) principle?",
+      "question_type": "MCQ",
+      "options": [
+        {
+          "key": "A",
+          "text": "Queue"
+        },
+        {
+          "key": "B",
+          "text": "Stack"
+        },
+        {
+          "key": "C",
+          "text": "Binary Tree"
+        },
+        {
+          "key": "D",
+          "text": "Hash Map"
+        }
+      ],
+      "source_pages": [
+        1
+      ],
+      "confidence": 0.95,
+      "status": "CONFIDENT",
+      "review_reasons": [],
+      "has_tables": false,
+      "has_images": false,
+      "metadata_info": {
+        "pages_count": 1
+      },
+      "id": "9af87e82-4a27-4afc-bc16-8772405f43ea",
+      "document_id": "ae0f369b-f857-4faa-b42d-779d42718dd0",
+      "is_reviewed": false,
+      "reviewer_notes": null,
+      "answer": {
+        "raw_answer": "B",
+        "normalized_answer": "B",
+        "explanation": null,
+        "confidence": 0.9,
+        "status": "CONFIRMED",
+        "source_page": 2,
+        "association_method": "INLINE_KEY_SECTION",
+        "warnings": [],
+        "id": "c29c06e3-8bfe-4343-832a-aab9d9f634e9",
+        "question_id": "9af87e82-4a27-4afc-bc16-8772405f43ea",
+        "source_document_id": "ae0f369b-f857-4faa-b42d-779d42718dd0",
+        "created_at": "2026-09-19T11:18:56.653083",
+        "updated_at": "2026-09-19T11:18:56.653083"
+      },
+      "created_at": "2026-09-19T11:18:56.651087",
+      "updated_at": "2026-09-19T11:18:56.651087"
+    }
+  },
+  "scenario_2_image_upload": {
+    "document_id": "bb60b6ca-c498-4ada-b158-1e858891dbdc",
+    "status": "COMPLETED"
+  },
+  "scenario_3_low_quality": {
+    "document_id": "a81386b6-a9d4-478b-9ea3-7c2eaa34cca3",
+    "status": "COMPLETED"
+  },
+  "scenario_4_multi_questions": {
+    "document_id": "23b49cd8-947f-4079-9471-2866163617cc",
+    "total_extracted": 10,
+    "numbering_formats": [
+      "1",
+      "2",
+      "uestion",
+      "4",
+      "5",
+      "6",
+      "7",
+      "uestion",
+      "9",
+      "10"
+    ]
+  },
+  "scenario_5_cross_page": {
+    "question_number": "1",
+    "source_pages": [
+      1,
+      2
+    ],
+    "options_count": 4
+  },
+  "scenario_6_options_and_tables": {
+    "has_tables": true,
+    "options": [
+      {
+        "key": "A",
+        "text": "SELECT AVG(Salary) FROM Employees WHERE Department = 'Engineering';"
+      },
+      {
+        "key": "B",
+        "text": "SELECT SUM(Salary) / COUNT(*) FROM Employees;"
+      },
+      {
+        "key": "C",
+        "text": "SELECT Salary FROM Employees GROUP BY Department;"
+      },
+      {
+        "key": "D",
+        "text": "SELECT MAX(Salary) - MIN(Salary) FROM Employees;"
+      }
+    ]
+  },
+  "scenario_7_separate_answer_key": {
+    "question_paper_id": "300de2f2-c5f0-4f26-a430-63ffaa9578bf",
+    "answer_key_id": "2631842b-b3d2-44b3-afcd-27289e099a4d",
+    "associated_answers": [
+      "B",
+      "B"
+    ]
+  },
+  "scenario_8_review_queue": {
+    "document_status": "NEEDS_REVIEW",
+    "flagged_questions": [
+      {
+        "id": "25ff149a-2e9a-4a71-977a-9808cce54b5e",
+        "confidence": 0.4,
+        "review_reasons": [
+          "SHORT_QUESTION_STEM",
+          "CRITICAL_MISSING_OPTIONS"
+        ]
+      },
+      {
+        "id": "65db8c71-96dd-4bfb-9451-2f318d8a69a0",
+        "confidence": 0.4,
+        "review_reasons": [
+          "SHORT_QUESTION_STEM",
+          "MISSING_OPTIONS",
+          "FEW_OPTIONS"
+        ]
+      }
+    ]
+  },
+  "scenario_9_structured_json": "extracted_sample_1_questions.json",
+  "scenario_10_invalid_handling": {
+    "rejected": true,
+    "error_message": "File signature (magic bytes) does not match any allowed format. File may be corrupted or disguised."
+  }
+}

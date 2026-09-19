@@ -1,0 +1,167 @@
+[
+  {
+    "question_number": "1",
+    "question_text": "Which of the following data structures operates on a Last-In, First-Out (LIFO) principle?",
+    "question_type": "MCQ",
+    "options": [
+      {
+        "key": "A",
+        "text": "Queue"
+      },
+      {
+        "key": "B",
+        "text": "Stack"
+      },
+      {
+        "key": "C",
+        "text": "Binary Tree"
+      },
+      {
+        "key": "D",
+        "text": "Hash Map"
+      }
+    ],
+    "source_pages": [
+      1
+    ],
+    "confidence": 0.95,
+    "status": "CONFIDENT",
+    "review_reasons": [],
+    "has_tables": false,
+    "has_images": false,
+    "metadata_info": {
+      "pages_count": 1
+    },
+    "id": "9af87e82-4a27-4afc-bc16-8772405f43ea",
+    "document_id": "ae0f369b-f857-4faa-b42d-779d42718dd0",
+    "is_reviewed": false,
+    "reviewer_notes": null,
+    "answer": {
+      "raw_answer": "B",
+      "normalized_answer": "B",
+      "explanation": null,
+      "confidence": 0.9,
+      "status": "CONFIRMED",
+      "source_page": 2,
+      "association_method": "INLINE_KEY_SECTION",
+      "warnings": [],
+      "id": "c29c06e3-8bfe-4343-832a-aab9d9f634e9",
+      "question_id": "9af87e82-4a27-4afc-bc16-8772405f43ea",
+      "source_document_id": "ae0f369b-f857-4faa-b42d-779d42718dd0",
+      "created_at": "2026-09-19T11:18:56.653083",
+      "updated_at": "2026-09-19T11:18:56.653083"
+    },
+    "created_at": "2026-09-19T11:18:56.651087",
+    "updated_at": "2026-09-19T11:18:56.651087"
+  },
+  {
+    "question_number": "2",
+    "question_text": "What is the time complexity of searching for an element in a balanced binary search tree with n nodes?",
+    "question_type": "MCQ",
+    "options": [
+      {
+        "key": "A",
+        "text": "O(1)"
+      },
+      {
+        "key": "B",
+        "text": "O(n)"
+      },
+      {
+        "key": "C",
+        "text": "O(log n)"
+      },
+      {
+        "key": "D",
+        "text": "O(n log n)"
+      }
+    ],
+    "source_pages": [
+      1
+    ],
+    "confidence": 0.95,
+    "status": "CONFIDENT",
+    "review_reasons": [],
+    "has_tables": false,
+    "has_images": false,
+    "metadata_info": {
+      "pages_count": 1
+    },
+    "id": "3b70ab07-12a0-43a3-9f1c-4799fe5fd99b",
+    "document_id": "ae0f369b-f857-4faa-b42d-779d42718dd0",
+    "is_reviewed": false,
+    "reviewer_notes": null,
+    "answer": {
+      "raw_answer": "C",
+      "normalized_answer": "C",
+      "explanation": null,
+      "confidence": 0.9,
+      "status": "CONFIRMED",
+      "source_page": 2,
+      "association_method": "INLINE_KEY_SECTION",
+      "warnings": [],
+      "id": "02d94a6f-5b6c-43ff-8080-04aaa1e2e30f",
+      "question_id": "3b70ab07-12a0-43a3-9f1c-4799fe5fd99b",
+      "source_document_id": "ae0f369b-f857-4faa-b42d-779d42718dd0",
+      "created_at": "2026-09-19T11:18:56.654068",
+      "updated_at": "2026-09-19T11:18:56.654068"
+    },
+    "created_at": "2026-09-19T11:18:56.652069",
+    "updated_at": "2026-09-19T11:18:56.652069"
+  },
+  {
+    "question_number": "3",
+    "question_text": "In relational database management systems, which normal form eliminates transitive dependencies?",
+    "question_type": "MCQ",
+    "options": [
+      {
+        "key": "A",
+        "text": "First Normal Form (1NF)"
+      },
+      {
+        "key": "B",
+        "text": "Second Normal Form (2NF)"
+      },
+      {
+        "key": "C",
+        "text": "Third Normal Form (3NF)"
+      },
+      {
+        "key": "D",
+        "text": "Boyce-Codd Normal Form (BCNF)"
+      }
+    ],
+    "source_pages": [
+      2
+    ],
+    "confidence": 0.95,
+    "status": "CONFIDENT",
+    "review_reasons": [],
+    "has_tables": false,
+    "has_images": false,
+    "metadata_info": {
+      "pages_count": 1
+    },
+    "id": "e86ff20b-7ede-4639-bf8f-91a7dab4037c",
+    "document_id": "ae0f369b-f857-4faa-b42d-779d42718dd0",
+    "is_reviewed": false,
+    "reviewer_notes": null,
+    "answer": {
+      "raw_answer": "C",
+      "normalized_answer": "C",
+      "explanation": null,
+      "confidence": 0.9,
+      "status": "CONFIRMED",
+      "source_page": 2,
+      "association_method": "INLINE_KEY_SECTION",
+      "warnings": [],
+      "id": "6549d3c0-1a5d-469b-ac80-941c2e19c60e",
+      "question_id": "e86ff20b-7ede-4639-bf8f-91a7dab4037c",
+      "source_document_id": "ae0f369b-f857-4faa-b42d-779d42718dd0",
+      "created_at": "2026-09-19T11:18:56.655595",
+      "updated_at": "2026-09-19T11:18:56.655595"
+    },
+    "created_at": "2026-09-19T11:18:56.654068",
+    "updated_at": "2026-09-19T11:18:56.654068"
+  }
+]
