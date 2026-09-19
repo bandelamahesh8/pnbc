@@ -17,7 +17,29 @@ Transforms unstructured, varied, and imperfect examination materials (PDFs and i
 
 ---
 
-### 🖥️ Interactive Web Dashboard & Demo Videos
+### 🖥️ Interactive Web Dashboard & Video Walkthrough
+
+<div align="center">
+
+#### 🎥 Web Application Live Demo (Playing Preview)
+[![Website Demo Preview](assets/website_demo_preview.gif)](website_demo_recording.mp4)
+
+*Click the preview above or open [`website_demo_recording.mp4`](website_demo_recording.mp4) to download/watch the full 720p HD video.*
+
+<br/>
+
+<details>
+<summary><b>📺 Click to view Terminal & Backend Execution Video Preview (18/18 Tests + 10 Scenarios)</b></summary>
+<br/>
+
+[![Terminal Demo Preview](assets/terminal_demo_preview.gif)](demo_recording.mp4)
+
+*Shows service initialization, 18/18 pytest suite passing, and all 10 document extraction scenarios.*
+</details>
+
+</div>
+
+<br/>
 
 | Deliverable | Description | Access / File Link |
 | :--- | :--- | :--- |
