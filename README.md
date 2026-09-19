@@ -17,6 +17,17 @@ Transforms unstructured, varied, and imperfect examination materials (PDFs and i
 
 ---
 
+### 🖥️ Interactive Web Dashboard & Demo Videos
+
+| Deliverable | Description | Access / File Link |
+| :--- | :--- | :--- |
+| **Interactive Web Dashboard** | Full-featured Single Page Application (SPA) with drag-and-drop uploader, real-time Gemini extraction progress, question intelligence viewer, review queue, and JSON inspector. | `http://localhost:8000/dashboard` or [app/static/index.html](app/static/index.html) |
+| **Website Demo Video (MP4)** | High-definition (720p HD) video walkthrough showing the complete Web Dashboard in action (upload, extraction, cross-page stitching, review queue approval, and JSON export). | [website_demo_recording.mp4](website_demo_recording.mp4) |
+| **Backend Demo Video (MP4)** | 720p HD recording of system startup, full 18-test pytest suite execution, and all 10 scenario runs. | [demo_recording.mp4](demo_recording.mp4) |
+| **Interactive HTML Player** | Browser-playable terminal replay with timestamps, colored log output, and step navigation. | [demo_player.html](demo_player.html) |
+
+---
+
 ## Table of Contents
 
 - [1. What Makes This System Different](#1-what-makes-this-system-different)

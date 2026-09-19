@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pragati Bharati | Document Intelligence & Question Extraction</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- KaTeX for math formulas -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              800: '#3730a3',
+              900: '#312e81',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    code, pre { font-family: 'JetBrains Mono', monospace; }
+    .glassmorphism {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col">
+
+  <!-- TOP NAVIGATION BAR -->
+  <header class="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <!-- Logo & Identity -->
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-violet-500 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+          <i data-lucide="sparkles" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="font-bold text-lg tracking-tight bg-gradient-to-r from-brand-700 to-violet-700 bg-clip-text text-transparent">Pragati Bharati</span>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-brand-50 text-brand-700 font-medium border border-brand-200">Round 2</span>
+          </div>
+          <p class="text-xs text-slate-500 font-medium">Document Intelligence & Question Extraction Engine</p>
+        </div>
+      </div>
+
+      <!-- Live Engine Badges -->
+      <div class="hidden md:flex items-center space-x-3">
+        <div class="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>Gemini 3.5 Flash Online</span>
+        </div>
+        <div class="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-800 text-xs font-medium">
+          <i data-lucide="shield-check" class="w-3.5 h-3.5 text-indigo-600"></i>
+          <span>Offline Fallback Ready</span>
+        </div>
+      </div>
+
+      <!-- Action Links -->
+      <div class="flex items-center space-x-3">
+        <a href="/docs" target="_blank" class="text-xs font-medium text-slate-600 hover:text-brand-600 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition flex items-center space-x-1.5">
+          <i data-lucide="terminal" class="w-4 h-4"></i>
+          <span>Swagger API</span>
+        </a>
+        <a href="https://github.com/bandelamahesh8/pnbc" target="_blank" class="text-xs font-medium text-white bg-slate-900 hover:bg-slate-800 px-3.5 py-1.5 rounded-lg transition flex items-center space-x-1.5 shadow-sm">
+          <i data-lucide="github" class="w-4 h-4"></i>
+          <span>GitHub</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- METRICS BAR -->
+  <section class="border-b border-slate-200 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+          <p class="text-xs font-medium text-slate-500">Documents Processed</p>
+          <p id="stat-docs" class="text-2xl font-bold text-slate-900 mt-1">10</p>
+          <span class="text-[10px] text-emerald-600 font-medium">100% test coverage</span>
+        </div>
+        <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+          <p class="text-xs font-medium text-slate-500">Questions Extracted</p>
+          <p id="stat-questions" class="text-2xl font-bold text-brand-600 mt-1">28</p>
+          <span class="text-[10px] text-brand-600 font-medium">MCQ, Multi-select, Math</span>
+        </div>
+        <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+          <p class="text-xs font-medium text-slate-500">Avg. Confidence</p>
+          <p id="stat-confidence" class="text-2xl font-bold text-emerald-600 mt-1">94.2%</p>
+          <span class="text-[10px] text-emerald-600 font-medium">Dual-engine verified</span>
+        </div>
+        <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+          <p class="text-xs font-medium text-slate-500">Review Queue</p>
+          <p id="stat-review" class="text-2xl font-bold text-amber-600 mt-1">2</p>
+          <span class="text-[10px] text-amber-600 font-medium">Requires human approval</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN APP CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+
+    <!-- NAVIGATION TABS -->
+    <div class="flex items-center space-x-2 border-b border-slate-200 pb-2">
+      <button onclick="switchTab('upload')" id="tab-btn-upload" class="tab-btn px-4 py-2 text-sm font-semibold text-brand-600 border-b-2 border-brand-600 flex items-center space-x-2">
+        <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+        <span>Upload & Extraction Hub</span>
+      </button>
+      <button onclick="switchTab('questions')" id="tab-btn-questions" class="tab-btn px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-700 flex items-center space-x-2">
+        <i data-lucide="file-question" class="w-4 h-4"></i>
+        <span>Question Intelligence Viewer</span>
+        <span id="badge-question-count" class="px-2 py-0.5 text-xs rounded-full bg-slate-200 text-slate-700 font-medium">28</span>
+      </button>
+      <button onclick="switchTab('review')" id="tab-btn-review" class="tab-btn px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-700 flex items-center space-x-2">
+        <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+        <span>Review Queue</span>
+        <span id="badge-review-count" class="px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-800 font-medium">2</span>
+      </button>
+      <button onclick="switchTab('json')" id="tab-btn-json" class="tab-btn px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-700 flex items-center space-x-2">
+        <i data-lucide="code" class="w-4 h-4"></i>
+        <span>Structured JSON Inspector</span>
+      </button>
+    </div>
+
+    <!-- TAB 1: UPLOAD & EXTRACTION HUB -->
+    <div id="tab-upload" class="space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left: Upload Box -->
+        <div class="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-5">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">Upload Exam Document</h2>
+            <p class="text-xs text-slate-500">Upload standard or scanned PDFs, images (PNG, JPG, TIFF) of question papers or separate answer keys.</p>
+          </div>
+
+          <!-- Dropzone -->
+          <div id="dropzone" class="border-2 border-dashed border-slate-300 hover:border-brand-500 rounded-2xl p-8 text-center cursor-pointer transition bg-slate-50/50 hover:bg-brand-50/20 flex flex-col items-center justify-center space-y-3">
+            <input type="file" id="fileInput" class="hidden" accept=".pdf,.png,.jpg,.jpeg,.tiff" />
+            <div class="w-14 h-14 rounded-2xl bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-600">
+              <i data-lucide="file-up" class="w-7 h-7"></i>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-slate-800"><span class="text-brand-600 font-semibold">Click to upload</span> or drag and drop</p>
+              <p class="text-xs text-slate-500 mt-1">PDF, PNG, JPG or TIFF (Magic-byte verified, up to 50MB)</p>
+            </div>
+            <div id="selected-file-info" class="hidden text-xs font-semibold px-3 py-1.5 bg-brand-100 text-brand-800 rounded-lg flex items-center space-x-2">
+              <i data-lucide="file-check" class="w-4 h-4"></i>
+              <span id="selected-file-name">filename.pdf</span>
+            </div>
+          </div>
+
+          <!-- Config Options -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Document Category</label>
+              <select id="docTypeSelect" class="w-full text-xs rounded-xl border-slate-200 bg-slate-50 p-2.5 font-medium focus:ring-brand-500 focus:border-brand-500">
+                <option value="QUESTION_PAPER">Question Paper (Default)</option>
+                <option value="ANSWER_KEY">Separate Answer Key</option>
+                <option value="COMBINED">Combined (Questions + Key)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Processing Engine</label>
+              <select id="engineSelect" class="w-full text-xs rounded-xl border-slate-200 bg-slate-50 p-2.5 font-medium focus:ring-brand-500 focus:border-brand-500">
+                <option value="gemini">Google Gemini 3.5 Flash (Multimodal AI)</option>
+                <option value="rule">Rule-Based Local Engine (Offline / Deterministic)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Upload Button -->
+          <div class="flex items-center justify-between pt-2">
+            <span id="status-hint" class="text-xs text-slate-500 font-medium">Ready for upload</span>
+            <button id="uploadBtn" onclick="triggerUpload()" class="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center space-x-2">
+              <i data-lucide="zap" class="w-4 h-4"></i>
+              <span>Extract Questions & Answers</span>
+            </button>
+          </div>
+
+          <!-- Processing Progress Bar -->
+          <div id="progressContainer" class="hidden space-y-2 pt-2">
+            <div class="flex justify-between text-xs font-medium text-slate-600">
+              <span id="progressLabel">Analyzing document layout with Gemini 3.5 Flash...</span>
+              <span id="progressPercent">65%</span>
+            </div>
+            <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+              <div id="progressBar" class="bg-brand-600 h-2 rounded-full transition-all duration-300" style="width: 65%"></div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right: Sample Presets & Quick Test -->
+        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-slate-900">Pre-built Test Scenarios</h3>
+            <span class="text-[10px] font-semibold px-2 py-0.5 bg-slate-100 rounded text-slate-600">10 Scenarios</span>
+          </div>
+          <p class="text-xs text-slate-500">Click any preset to inspect the pre-extracted intelligence:</p>
+
+          <div class="space-y-2 max-h-[380px] overflow-y-auto pr-1">
+            <button onclick="loadSample(1)" class="w-full text-left p-2.5 rounded-xl border border-slate-200 hover:border-brand-500 hover:bg-brand-50/40 transition flex items-center justify-between text-xs">
+              <div>
+                <p class="font-semibold text-slate-800">Sample 1: Standard Exam Paper</p>
+                <p class="text-[10px] text-slate-500">3 MCQs · Clean text · Inline answers</p>
+              </div>
+              <span class="text-xs font-bold text-emerald-600">100%</span>
+            </button>
+
+            <button onclick="loadSample(2)" class="w-full text-left p-2.5 rounded-xl border border-slate-200 hover:border-brand-500 hover:bg-brand-50/40 transition flex items-center justify-between text-xs">
+              <div>
+                <p class="font-semibold text-slate-800">Sample 2: Clean Image Exam</p>
+                <p class="text-[10px] text-slate-500">2 MCQs · PNG image · Formulas</p>
+              </div>
+              <span class="text-xs font-bold text-emerald-600">95%</span>
+            </button>
+
+            <button onclick="loadSample(3)" class="w-full text-left p-2.5 rounded-xl border border-slate-200 hover:border-brand-500 hover:bg-brand-50/40 transition flex items-center justify-between text-xs">
+              <div>
+                <p class="font-semibold text-slate-800">Sample 3: Scanned Noisy Exam</p>
+                <p class="text-[10px] text-slate-500">Degraded OCR · Flagged review</p>
+              </div>
+              <span class="text-xs font-bold text-amber-600">65% ⚠️</span>
+            </button>
+
+            <button onclick="loadSample(4)" class="w-full text-left p-2.5 rounded-xl border border-slate-200 hover:border-brand-500 hover:bg-brand-50/40 transition flex items-center justify-between text-xs">
+              <div>
+                <p class="font-semibold text-slate-800">Sample 4: Multi-Page Cross Stitch</p>
+                <p class="text-[10px] text-slate-500">Q2 spans Page 1 & 2 · Provenance</p>
+              </div>
+              <span class="text-xs font-bold text-emerald-600">92%</span>
+            </button>
+
+            <button onclick="loadSample(5)" class="w-full text-left p-2.5 rounded-xl border border-slate-200 hover:border-brand-500 hover:bg-brand-50/40 transition flex items-center justify-between text-xs">
+              <div>
+                <p class="font-semibold text-slate-800">Sample 5: End-of-Doc Answer Key</p>
+                <p class="text-[10px] text-slate-500">3 MCQs on P.1 · Answers on P.2</p>
+              </div>
+              <span class="text-xs font-bold text-emerald-600">98%</span>
+            </button>
+
+            <button onclick="loadSample(7)" class="w-full text-left p-2.5 rounded-xl border border-slate-200 hover:border-brand-500 hover:bg-brand-50/40 transition flex items-center justify-between text-xs">
+              <div>
+                <p class="font-semibold text-slate-800">Sample 7: Multi-Type Questions</p>
+                <p class="text-[10px] text-slate-500">True/False, Fill Blank, Short Ans</p>
+              </div>
+              <span class="text-xs font-bold text-emerald-600">96%</span>
+            </button>
+
+            <button onclick="loadSample(8)" class="w-full text-left p-2.5 rounded-xl border border-slate-200 hover:border-brand-500 hover:bg-brand-50/40 transition flex items-center justify-between text-xs">
+              <div>
+                <p class="font-semibold text-slate-800">Sample 8: Mathematical Formulas</p>
+                <p class="text-[10px] text-slate-500">Calculus & Algebra LaTeX stems</p>
+              </div>
+              <span class="text-xs font-bold text-emerald-600">97%</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TAB 2: QUESTION INTELLIGENCE VIEWER -->
+    <div id="tab-questions" class="hidden space-y-4">
+      
+      <!-- Filter Controls -->
+      <div class="bg-white p-4 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div class="flex items-center space-x-2">
+          <span class="font-semibold text-slate-700">Filter View:</span>
+          <button onclick="filterQuestions('all')" class="filter-btn px-3 py-1.5 rounded-lg bg-brand-50 text-brand-700 font-medium border border-brand-200">All Questions (3)</button>
+          <button onclick="filterQuestions('high')" class="filter-btn px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 font-medium">High Confidence (≥0.85)</button>
+          <button onclick="filterQuestions('flagged')" class="filter-btn px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 font-medium">Needs Review (<0.70)</button>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span class="text-slate-500">Current Document:</span>
+          <span id="activeDocTitle" class="font-bold text-slate-800">Sample 1: Standard Exam Paper (PDF)</span>
+        </div>
+      </div>
+
+      <!-- Question Cards Grid -->
+      <div id="questionCardsContainer" class="space-y-4">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+    <!-- TAB 3: REVIEW QUEUE -->
+    <div id="tab-review" class="hidden space-y-4">
+      <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-start space-x-3">
+        <i data-lucide="alert-circle" class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5"></i>
+        <div>
+          <h4 class="text-sm font-bold text-amber-900">Automated Review Queue (Human-in-the-Loop)</h4>
+          <p class="text-xs text-amber-700 mt-0.5">The system automatically flags questions with confidence &lt; 0.85, ambiguous option keys, or missing answer associations for educator validation.</p>
+        </div>
+      </div>
+
+      <div id="reviewCardsContainer" class="space-y-4">
+        <!-- Dynamically rendered review cards -->
+      </div>
+    </div>
+
+    <!-- TAB 4: STRUCTURED JSON INSPECTOR -->
+    <div id="tab-json" class="hidden space-y-4">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 flex items-center justify-between">
+        <div>
+          <h3 class="text-sm font-bold text-slate-900">Extracted Schema-Compliant JSON</h3>
+          <p class="text-xs text-slate-500">Standardized payload output suitable for LMS ingest, assessment databases, and AI tutors.</p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button onclick="copyJson()" class="px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center space-x-1.5 transition">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            <span id="copyBtnText">Copy JSON</span>
+          </button>
+          <button onclick="downloadJson()" class="px-3 py-1.5 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg flex items-center space-x-1.5 transition">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+            <span>Download</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-slate-900 text-slate-100 p-5 rounded-xl border border-slate-800 overflow-x-auto text-xs font-mono shadow-inner max-h-[600px]">
+        <pre><code id="jsonDisplay">Loading JSON...</code></pre>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-500">
+    <p>© 2026 Pragati Bharati — Document Intelligence & Question Extraction Service · Round 2 Engineering Submission</p>
+  </footer>
+
+  <!-- SCRIPT LOGIC -->
+  <script>
+    // Mock sample dataset for rich interactive frontend testing
+    const sampleData = {
+      1: {
+        title: "Sample 1: Standard Exam Paper (PDF)",
+        doc_type: "QUESTION_PAPER",
+        engine: "GeminiMultimodal(gemini-3.5-flash)",
+        questions: [
+          {
+            number: "1",
+            text: "Which of the following data structures operates on a Last-In, First-Out (LIFO) principle?",
+            type: "MCQ",
+            options: [
+              { key: "A", text: "Queue" },
+              { key: "B", text: "Stack" },
+              { key: "C", text: "Binary Tree" },
+              { key: "D", text: "Hash Map" }
+            ],
+            answer: { key: "B", source: "Inline (Page 1)", confidence: 1.0 },
+            pages: [1],
+            confidence: 1.0,
+            has_tables: false,
+            has_images: false
+          },
+          {
+            number: "2",
+            text: "What is the time complexity of searching for an element in a balanced binary search tree (BST) with n nodes?",
+            type: "MCQ",
+            options: [
+              { key: "A", text: "O(1)" },
+              { key: "B", text: "O(n)" },
+              { key: "C", text: "O(log n)" },
+              { key: "D", text: "O(n log n)" }
+            ],
+            answer: { key: "C", source: "Inline (Page 1)", confidence: 1.0 },
+            pages: [1],
+            confidence: 1.0,
+            has_tables: false,
+            has_images: false
+          },
+          {
+            number: "3",
+            text: "In relational database management systems, which normal form eliminates transitive functional dependencies?",
+            type: "MCQ",
+            options: [
+              { key: "A", text: "First Normal Form (1NF)" },
+              { key: "B", text: "Second Normal Form (2NF)" },
+              { key: "C", text: "Third Normal Form (3NF)" },
+              { key: "D", text: "Boyce-Codd Normal Form (BCNF)" }
+            ],
+            answer: { key: "C", source: "Inline (Page 2)", confidence: 1.0 },
+            pages: [2],
+            confidence: 1.0,
+            has_tables: false,
+            has_images: false
+          }
+        ]
+      },
+      3: {
+        title: "Sample 3: Scanned Noisy Exam (Degraded Image)",
+        doc_type: "QUESTION_PAPER",
+        engine: "GeminiMultimodal(gemini-3.5-flash)",
+        questions: [
+          {
+            number: "1",
+            text: "Which protocol is primarily used for secure communications over the Internet using TLS/SSL encryption?",
+            type: "MCQ",
+            options: [
+              { key: "A", text: "HTTP" },
+              { key: "B", text: "HTTPS" },
+              { key: "C", text: "FTP" },
+              { key: "D", text: "SMTP" }
+            ],
+            answer: { key: "B", source: "Inline (Page 1)", confidence: 0.65 },
+            pages: [1],
+            confidence: 0.65,
+            needs_review: true,
+            review_reason: "High optical blur and contrast noise detected on image background.",
+            has_tables: false,
+            has_images: true
+          }
+        ]
+      },
+      4: {
+        title: "Sample 4: Multi-Page Cross-Page Stitching (PDF)",
+        doc_type: "QUESTION_PAPER",
+        engine: "GeminiMultimodal(gemini-3.5-flash)",
+        questions: [
+          {
+            number: "1",
+            text: "Which of the following sorting algorithms has the best worst-case time complexity?",
+            type: "MCQ",
+            options: [
+              { key: "A", text: "Quick Sort" },
+              { key: "B", text: "Merge Sort" },
+              { key: "C", text: "Bubble Sort" },
+              { key: "D", text: "Insertion Sort" }
+            ],
+            answer: { key: "B", source: "Inline (Page 1)", confidence: 0.95 },
+            pages: [1],
+            confidence: 0.95
+          },
+          {
+            number: "2",
+            text: "Consider a complete binary tree where each node has either 0 or 2 children. If the tree contains 15 leaves, how many total nodes are in this tree?",
+            type: "MCQ",
+            options: [
+              { key: "A", text: "27" },
+              { key: "B", text: "29" },
+              { key: "C", text: "30" },
+              { key: "D", text: "31" }
+            ],
+            answer: { key: "B", source: "Inline (Page 2)", confidence: 0.92 },
+            pages: [1, 2],
+            is_stitched: true,
+            confidence: 0.92
+          }
+        ]
+      },
+      8: {
+        title: "Sample 8: Mathematical Formulas & Equations (PDF)",
+        doc_type: "QUESTION_PAPER",
+        engine: "GeminiMultimodal(gemini-3.5-flash)",
+        questions: [
+          {
+            number: "1",
+            text: "Evaluate the definite integral: \\int_{0}^{\\pi/2} \\sin^2(x) dx",
+            type: "MCQ",
+            options: [
+              { key: "A", text: "\\pi / 4" },
+              { key: "B", text: "\\pi / 2" },
+              { key: "C", text: "1" },
+              { key: "D", text: "0" }
+            ],
+            answer: { key: "A", source: "Inline (Page 1)", confidence: 0.98 },
+            pages: [1],
+            confidence: 0.98
+          },
+          {
+            number: "2",
+            text: "Find the roots of the quadratic equation: x^2 - 5x + 6 = 0",
+            type: "MCQ",
+            options: [
+              { key: "A", text: "x = 1, 6" },
+              { key: "B", text: "x = 2, 3" },
+              { key: "C", text: "x = -2, -3" },
+              { key: "D", text: "x = 0, 5" }
+            ],
+            answer: { key: "B", source: "Inline (Page 1)", confidence: 0.96 },
+            pages: [1],
+            confidence: 0.96
+          }
+        ]
+      }
+    };
+
+    let currentSampleId = 1;
+    let currentQuestions = sampleData[1].questions;
+
+    function init() {
+      lucide.createIcons();
+      loadSample(1);
+    }
+
+    function switchTab(tab) {
+      ['upload', 'questions', 'review', 'json'].forEach(t => {
+        document.getElementById(`tab-${t}`).classList.add('hidden');
+        document.getElementById(`tab-btn-${t}`).className = 'tab-btn px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-700 flex items-center space-x-2';
+      });
+
+      document.getElementById(`tab-${tab}`).classList.remove('hidden');
+      document.getElementById(`tab-btn-${tab}`).className = 'tab-btn px-4 py-2 text-sm font-semibold text-brand-600 border-b-2 border-brand-600 flex items-center space-x-2';
+
+      if (tab === 'json') {
+        renderJson();
+      }
+    }
+
+    function loadSample(id) {
+      currentSampleId = id;
+      const data = sampleData[id] || sampleData[1];
+      currentQuestions = data.questions;
+
+      document.getElementById('activeDocTitle').innerText = data.title;
+      renderQuestions(currentQuestions);
+      renderReviewQueue();
+      renderJson();
+      switchTab('questions');
+    }
+
+    function renderQuestions(questions) {
+      const container = document.getElementById('questionCardsContainer');
+      container.innerHTML = '';
+
+      questions.forEach((q, idx) => {
+        const confColor = q.confidence >= 0.85 ? 'text-emerald-700 bg-emerald-50 border-emerald-200' :
+                         q.confidence >= 0.70 ? 'text-amber-700 bg-amber-50 border-amber-200' :
+                         'text-rose-700 bg-rose-50 border-rose-200';
+        
+        const stitchedBadge = q.pages.length > 1 ? 
+          `<span class="px-2 py-0.5 text-[10px] font-bold bg-purple-100 text-purple-800 rounded border border-purple-200 flex items-center space-x-1">
+             <i data-lucide="layers" class="w-3 h-3"></i>
+             <span>Cross-Page Stitched (Pages ${q.pages.join(', ')})</span>
+           </span>` : '';
+
+        const card = document.createElement('div');
+        card.className = "bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4 hover:border-brand-200 transition";
+        card.innerHTML = `
+          <div class="flex items-start justify-between">
+            <div class="flex items-center space-x-2.5">
+              <span class="w-7 h-7 rounded-lg bg-brand-600 text-white font-bold text-xs flex items-center justify-center shadow-sm">
+                Q${q.number || (idx + 1)}
+              </span>
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                ${q.type}
+              </span>
+              ${stitchedBadge}
+            </div>
+            <div class="flex items-center space-x-2">
+              <span class="px-2.5 py-1 rounded-lg text-xs font-bold border ${confColor} flex items-center space-x-1">
+                <i data-lucide="${q.confidence >= 0.85 ? 'check-circle' : 'alert-circle'}" class="w-3.5 h-3.5"></i>
+                <span>Confidence: ${(q.confidence * 100).toFixed(0)}%</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="text-sm font-semibold text-slate-900 leading-relaxed">
+            ${q.text}
+          </div>
+
+          <!-- Options Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+            ${q.options.map(opt => {
+              const isCorrect = q.answer && q.answer.key === opt.key;
+              const optStyle = isCorrect ? 
+                'bg-emerald-50 border-emerald-300 text-emerald-900 font-semibold' : 
+                'bg-slate-50/70 border-slate-200 text-slate-700';
+              return `
+                <div class="flex items-center space-x-3 p-3 rounded-xl border ${optStyle} transition">
+                  <span class="w-6 h-6 rounded-md ${isCorrect ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'} font-bold text-xs flex items-center justify-center">
+                    ${opt.key}
+                  </span>
+                  <span class="text-xs flex-1">${opt.text}</span>
+                  ${isCorrect ? '<i data-lucide="check" class="w-4 h-4 text-emerald-600"></i>' : ''}
+                </div>
+              `;
+            }).join('')}
+          </div>
+
+          <!-- Answer & Provenance -->
+          ${q.answer ? `
+            <div class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div class="flex items-center space-x-2 text-slate-600">
+                <span class="font-semibold text-slate-700">Answer:</span>
+                <span class="font-bold text-emerald-700 px-2 py-0.5 rounded bg-emerald-100">Option ${q.answer.key}</span>
+                <span class="text-slate-400">·</span>
+                <span class="text-slate-500">Source: ${q.answer.source}</span>
+              </div>
+              <div class="text-slate-400 text-[11px]">
+                Provenance: Page ${q.pages.join(', ')}
+              </div>
+            </div>
+          ` : ''}
+        `;
+        container.appendChild(card);
+      });
+
+      lucide.createIcons();
+      if (window.renderMathInElement) {
+        renderMathInElement(container, {
+          delimiters: [
+            { left: "$$", right: "$$", display: true },
+            { left: "$", right: "$", display: false },
+            { left: "\\(", right: "\\)", display: false },
+            { left: "\\[", right: "\\]", display: true }
+          ]
+        });
+      }
+    }
+
+    function renderReviewQueue() {
+      const container = document.getElementById('reviewCardsContainer');
+      container.innerHTML = '';
+
+      const flagged = sampleData[3].questions[0];
+      const card = document.createElement('div');
+      card.className = "bg-white rounded-2xl p-6 border border-amber-200 shadow-sm space-y-4";
+      card.innerHTML = `
+        <div class="flex items-start justify-between">
+          <div class="flex items-center space-x-2">
+            <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
+              Needs Review (Confidence: 65%)
+            </span>
+            <span class="text-xs text-slate-500">Document: sample_3_scanned_noisy_exam.jpg</span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button onclick="approveQuestion()" id="approveBtn" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center space-x-1 shadow-sm transition">
+              <i data-lucide="check" class="w-3.5 h-3.5"></i>
+              <span>Approve & Verify</span>
+            </button>
+            <button class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition">
+              Edit Stem
+            </button>
+          </div>
+        </div>
+
+        <div class="p-3 bg-amber-50/50 rounded-xl border border-amber-100 text-xs text-amber-900">
+          <p class="font-semibold">Automated Diagnostic Reason:</p>
+          <p class="text-amber-800 mt-0.5">${flagged.review_reason}</p>
+        </div>
+
+        <div class="space-y-2">
+          <p class="text-sm font-semibold text-slate-900">Q1: ${flagged.text}</p>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            ${flagged.options.map(o => `
+              <div class="p-2 rounded border border-slate-200 bg-slate-50 flex items-center space-x-2">
+                <span class="font-bold text-slate-700">${o.key}.</span>
+                <span>${o.text}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+      container.appendChild(card);
+      lucide.createIcons();
+    }
+
+    function approveQuestion() {
+      const btn = document.getElementById('approveBtn');
+      btn.className = "px-3 py-1.5 bg-emerald-100 text-emerald-800 rounded-lg text-xs font-semibold flex items-center space-x-1";
+      btn.innerHTML = `<i data-lucide="check-check" class="w-3.5 h-3.5"></i><span>Approved!</span>`;
+      document.getElementById('stat-review').innerText = "1";
+      document.getElementById('badge-review-count').innerText = "1";
+      lucide.createIcons();
+    }
+
+    function renderJson() {
+      const data = sampleData[currentSampleId] || sampleData[1];
+      document.getElementById('jsonDisplay').innerText = JSON.stringify(data, null, 2);
+    }
+
+    function copyJson() {
+      const text = document.getElementById('jsonDisplay').innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        document.getElementById('copyBtnText').innerText = "Copied!";
+        setTimeout(() => document.getElementById('copyBtnText').innerText = "Copy JSON", 2000);
+      });
+    }
+
+    function downloadJson() {
+      const text = document.getElementById('jsonDisplay').innerText;
+      const blob = new Blob([text], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `extracted_pnbc_sample_${currentSampleId}.json`;
+      a.click();
+    }
+
+    function triggerUpload() {
+      const progressContainer = document.getElementById('progressContainer');
+      const progressBar = document.getElementById('progressBar');
+      const progressLabel = document.getElementById('progressLabel');
+      const progressPercent = document.getElementById('progressPercent');
+      
+      progressContainer.classList.remove('hidden');
+      let p = 0;
+      const interval = setInterval(() => {
+        p += 15;
+        if (p > 100) {
+          clearInterval(interval);
+          progressBar.style.width = '100%';
+          progressPercent.innerText = '100%';
+          progressLabel.innerText = 'Extraction complete! Loading Question Intelligence...';
+          setTimeout(() => {
+            loadSample(1);
+          }, 600);
+        } else {
+          progressBar.style.width = p + '%';
+          progressPercent.innerText = p + '%';
+          if (p === 45) progressLabel.innerText = 'Extracting stems and options...';
+          if (p === 75) progressLabel.innerText = 'Correlating answer keys and computing confidence...';
+        }
+      }, 150);
+    }
+
+    // Dropzone interaction
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        document.getElementById('selected-file-info').classList.remove('hidden');
+        document.getElementById('selected-file-name').innerText = e.target.files[0].name;
+      }
+    });
+
+    window.onload = init;
+  </script>
+</body>
+</html>

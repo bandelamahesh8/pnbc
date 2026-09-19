@@ -76,11 +76,36 @@ register_exception_handlers(app)
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 
+import os
+from fastapi import Request
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
+# Mount static assets
+if os.path.exists("app/static"):
+    app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+
+@app.get("/dashboard", response_class=FileResponse, tags=["Web UI"])
+async def dashboard():
+    """Serves the Pragati Bharati Document Intelligence Web Dashboard."""
+    return FileResponse("app/static/index.html")
+
+
 @app.get("/", tags=["Root"])
-async def root():
+async def root(request: Request):
+    """
+    Root endpoint: serves the interactive Web Dashboard for browser clients,
+    or JSON discovery metadata for API clients.
+    """
+    accept = request.headers.get("accept", "")
+    if "text/html" in accept and os.path.exists("app/static/index.html"):
+        return FileResponse("app/static/index.html")
+
     return {
         "service": settings.PROJECT_NAME,
         "version": settings.VERSION,
+        "dashboard": "/dashboard",
         "docs": "/docs",
         "redoc": "/redoc",
         "health": f"{settings.API_V1_STR}/health",
@@ -91,3 +116,4 @@ async def root():
             "token": f"{settings.API_V1_STR}/auth/token",
         },
     }
+
