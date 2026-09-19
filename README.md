@@ -10,7 +10,7 @@
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)](https://www.docker.com/)
 [![Tests](https://img.shields.io/badge/Tests-18%20Passed%20(100%25)-brightgreen.svg)]()
 
-**A scalable, production-oriented Document Processing & Question Extraction Service designed for the Pragati Bharati ecosystem.**  
+**A production-grade, scalable Document Processing & Question Extraction Service designed for Pragati Bharati.**  
 Transforms unstructured, varied, and imperfect examination materials (PDFs and images) into structured, machine-readable questions with answer key association, cross-page stitching, confidence scoring, and human-in-the-loop review queues.
 
 </div>
@@ -19,120 +19,398 @@ Transforms unstructured, varied, and imperfect examination materials (PDFs and i
 
 ## Table of Contents
 
-1. [System Architecture](#system-architecture)
-2. [Key Capabilities](#key-capabilities)
-3. [Technology Choices & Rationales](#technology-choices--rationales)
-4. [Quick Start Guide](#quick-start-guide)
-   - [Option A: Docker Compose (Full Stack)](#option-a-docker-compose-full-stack)
-   - [Option B: Local Virtual Environment](#option-b-local-virtual-environment)
-5. [10 Required Demonstration Scenarios](#10-required-demonstration-scenarios)
-6. [API Specification & Endpoints](#api-specification--endpoints)
-7. [Testing & Quality Assurance](#testing--quality-assurance)
-8. [Project Layout](#project-layout)
-9. [Design Decisions & Trade-Offs](#design-decisions--trade-offs)
+- [1. What Makes This System Different](#1-what-makes-this-system-different)
+- [2. End-to-End System Architecture](#2-end-to-end-system-architecture)
+- [3. How It Works: Processing Lifecycle](#3-how-it-works-processing-lifecycle)
+- [4. Document State Machine & Stages](#4-document-state-machine--stages)
+- [5. Core Intelligence Engines](#5-core-intelligence-engines)
+  - [5.1 Dual-Engine Extraction Strategy](#51-dual-engine-extraction-strategy)
+  - [5.2 Cross-Page Question Stitching](#52-cross-page-question-stitching)
+  - [5.3 Answer Key Association & Normalization](#53-answer-key-association--normalization)
+  - [5.4 Confidence Scoring & Review Queue](#54-confidence-scoring--review-queue)
+- [6. Database Entity-Relationship Model](#6-database-entity-relationship-model)
+- [7. 10 Required Demonstration Scenarios](#7-10-required-demonstration-scenarios)
+- [8. Quick Start Guide](#8-quick-start-guide)
+  - [Option A: Docker Compose (Full Stack)](#option-a-docker-compose-full-stack)
+  - [Option B: Local Virtual Environment](#option-b-local-virtual-environment)
+- [9. Complete API Reference](#9-complete-api-reference)
+- [10. Automated Testing & Verification](#10-automated-testing--verification)
+- [11. Enterprise Security Posture](#11-enterprise-security-posture)
+- [12. Engineering Trade-Offs](#12-engineering-trade-offs)
 
 ---
 
-## System Architecture
+## 1. What Makes This System Different?
 
-The service follows an asynchronous, decoupled architecture ensuring that file uploads never block clients:
+Most existing document extraction tools rely either on rigid regex templates (which fail when layouts vary) or generic LLM wrappers (which are slow, expensive, hallucinate answers, and cannot handle cross-page breaks). 
 
+This service was engineered specifically for the complexities of **educational assessment materials**:
+
+| Capability | Traditional OCR (e.g. Tesseract) | Generic LLM Wrapper | **Pragati Bharati Service** |
+| :--- | :---: | :---: | :---: |
+| **Cross-Page Question Stitching** | ❌ Fails (treats each page in isolation) | ❌ Inconsistent (loses options across pages) | **✅ Native Stitching**: Tracks `source_pages=[1, 2]` and merges split stems & options |
+| **Answer Key Association** | ❌ None | ⚠️ Often hallucinated or silently wrong | **✅ 3-Way Alignment**: Inline, end-of-doc, or separate linked document (`POST /associate`) |
+| **Handling Imperfect / Low-Res Scans** | ❌ Garbled text | ⚠️ Unpredictable failure | **✅ Adaptive Quality Detection**: Automatically flags `NEEDS_REVIEW` with transparent reasons |
+| **Zero-Cloud / Offline Evaluation** | ✅ Yes | ❌ Impossible (requires cloud API) | **✅ Dual-Engine**: Runs 100% offline out-of-the-box, activates Gemini 3.8 Flash when key is set |
+| **Hallucination Prevention** | N/A | ❌ Fabricates missing answers | **✅ Explicit Uncertainty**: Assigns `NOT_FOUND` / `UNCERTAIN` instead of guessing |
+| **File Upload Security** | ❌ File extension only | ❌ Extension only | **✅ Magic Byte Verification**: Rejects disguised binaries (`MZ`, `ELF`) at byte level |
+| **Human-in-the-Loop Review** | ❌ None | ❌ None | **✅ Dedicated Review Queue** + `PATCH /questions/{id}` correction API |
+
+---
+
+## 2. End-to-End System Architecture
+
+The service utilizes an asynchronous, event-driven pipeline that decouples client ingestion from compute-intensive document extraction:
+
+```mermaid
+flowchart TD
+    subgraph Clients["Clients & Upstream Systems"]
+        Client["Downstream Exam Platform"]
+        UI["Swagger UI / Postman / CLI"]
+    end
+
+    subgraph Gateway["FastAPI Gateway Layer"]
+        AuthGuard["JWT Auth & Role Guard"]
+        UploadValidator["Magic Bytes & Size Validator"]
+        DocController["Document Controller"]
+        QuestionController["Question & Review Controller"]
+    end
+
+    subgraph StorageQueue["Storage & Queue Layer"]
+        SecureStorage[("Secure File Storage\nUUID Paths & Traversal Guard")]
+        RedisBroker[("Redis 7 Broker\nTask Queue & State Cache")]
+        CeleryPool["Celery Worker Pool\nConcurrent Background Processing"]
+    end
+
+    subgraph IntelligenceEngine["Document Intelligence Engine"]
+        Router["Pipeline Strategy Router"]
+        GeminiVision["Google Gemini 3.8 Flash\nMultimodal Vision AI"]
+        LocalEngine["Local Heuristic Engine\nPDFPlumber / PyPDF / Pillow"]
+        Stitcher["Cross-Page Question Stitcher"]
+        AnswerMatcher["Answer Key Alignment Engine"]
+        QualityValidator["Confidence & Review Queue Scorer"]
+    end
+
+    subgraph Persistence["Persistence Layer"]
+        Postgres[("PostgreSQL 16 Database\nDocuments, Questions, Answers, Relations")]
+    end
+
+    Client -->|1. POST /documents/upload| UploadValidator
+    UploadValidator -->|2. Validate Magic Bytes| SecureStorage
+    UploadValidator -->|3. Enqueue Task| RedisBroker
+    UploadValidator -->|4. Return 202 Accepted| Client
+
+    RedisBroker -->|5. Dequeue Job| CeleryPool
+    CeleryPool --> Router
+    Router -->|Primary: Multimodal AI| GeminiVision
+    Router -->|Secondary / Offline| LocalEngine
+    GeminiVision --> Stitcher
+    LocalEngine --> Stitcher
+    Stitcher --> AnswerMatcher
+    AnswerMatcher --> QualityValidator
+    QualityValidator -->|6. Persist Questions & Answers| Postgres
+
+    Client -->|7. Poll Status & Retrieve Questions| DocController
+    DocController --> Postgres
+    QuestionController -->|8. Human Review & Corrections| Postgres
 ```
-[Client / Downstream Platform]
-         │
-         │ 1. POST /api/v1/documents/upload (PDF/Image)
-         ▼
-[FastAPI Gateway] ──► 2. Validate Magic Bytes & Save (UUID) ──► [Secure File Storage]
-         │
-         │ 3. Enqueue Document Task
-         ▼
-  [Redis Broker]
-         │
-         │ 4. Dequeue Task
-         ▼
-[Celery / Async Worker]
-         │
-         ├──► Strategy Router:
-         │      ├── Primary: Google Gemini 3.8 Flash Multimodal AI
-         │      └── Secondary / Fallback: Local Heuristic & PDFPlumber Engine
-         │
-         ├──► Cross-Page Question Stitcher (preserves source_pages)
-         ├──► Answer Key Matcher (inline, end-of-doc, or separate doc)
-         └──► Confidence & Review Queue Validator
-         │
-         │ 5. Persist Extracted Questions & Answer Keys
-         ▼
-[PostgreSQL Database] ◄── 6. GET /documents/{id}/questions ◄── [Client / Reviewer]
+
+---
+
+## 3. How It Works: Processing Lifecycle
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client as Client / Examiner
+    participant API as FastAPI Gateway
+    participant Storage as Secure Storage
+    participant Redis as Redis Queue
+    participant Worker as Celery Worker
+    participant Engine as Intelligence Engine
+    participant DB as PostgreSQL
+
+    Client->>API: POST /api/v1/documents/upload (PDF or Image)
+    API->>Storage: Inspect magic bytes & save file as <UUID>.<ext>
+    API->>DB: Insert Document (status="PENDING", stage="UPLOADED")
+    API->>Redis: Enqueue process_document_task(document_id)
+    API-->>Client: 202 Accepted {document_id, status_url}
+
+    Redis->>Worker: Consume task(document_id)
+    Worker->>DB: Update stage="READING_FILE", progress=15%
+    Worker->>Storage: Read file bytes
+    Worker->>DB: Update stage="EXTRACTING_QUESTIONS", progress=35%
+    Worker->>Engine: Run Multimodal AI or Local Extractor
+    Engine->>Engine: Identify question boundaries & stitch cross-page splits
+    Worker->>DB: Update stage="ASSOCIATING_ANSWERS", progress=65%
+    Engine->>Engine: Correlate answer keys (inline or associated document)
+    Worker->>DB: Update stage="VALIDATING", progress=85%
+    Engine->>Engine: Calculate confidence scores & flag review reasons
+    Worker->>DB: Bulk insert Questions, Options, and Answer Keys
+    Worker->>DB: Update status="COMPLETED" (or "NEEDS_REVIEW"), stage="DONE", progress=100%
+
+    loop Poll Status
+        Client->>API: GET /api/v1/documents/{id}/status
+        API->>DB: Query status, stage, counts
+        API-->>Client: 200 OK {status, progress_percent, question_count, confident_count}
+    end
+
+    Client->>API: GET /api/v1/documents/{id}/questions
+    API->>DB: Query questions with filters
+    API-->>Client: 200 OK [Structured Questions JSON]
 ```
 
 ---
 
-## Key Capabilities
+## 4. Document State Machine & Stages
 
-### 1. Robust Document Processing
-- **Format Support**: Digitally generated PDFs, scanned PDFs, JPG/JPEG, PNG, and WebP.
-- **Layout Agnostic**: Works across varied layouts, multi-column formats, non-selectable text, and unnumbered questions.
-- **Dual-Engine Processing**:
-  - **Primary**: Google Gemini 3.8 Flash via `google-genai` SDK for multimodal understanding of complex layouts, handwritten/scanned text, tables, and equations.
-  - **Secondary (Built-in Fallback)**: Local deterministic extraction engine using `pypdf`, `pdfplumber`, and layout heuristics for 100% offline, zero-dependency evaluation.
+Every document transitions through deterministic lifecycle states:
 
-### 2. Question Extraction & Cross-Page Stitching
-- Identifies question number, full stem, options, question type (`MCQ`, `MULTI_SELECT`, `TRUE_FALSE`, `FILL_IN_THE_BLANK`, `SHORT_ANSWER`, `DESCRIPTIVE`), and embedded tables/images.
-- **Cross-Page Stitching**: Seamlessly stitches questions that span page boundaries (e.g. stem on Page 1, options on Page 2) and preserves provenance in `source_pages: [1, 2]`.
-
-### 3. Comprehensive Answer Key Association
-- Supports answer keys located:
-  - At the end of the document (`=== ANSWER KEY ===`).
-  - Inline with questions.
-  - In a **separate document** (associated via `POST /api/v1/documents/{id}/associate`).
-- Normalizes answers (`(B)` $\rightarrow$ `B`) and extracts embedded rationale (`B (Explanation: 2x = 10 => x = 5)`).
-- If an answer cannot be reliably matched, sets `status="NOT_FOUND"` or `"UNCERTAIN"` instead of silently assigning an incorrect answer.
-
-### 4. Confidence Scoring & Human-in-the-Loop Review
-- Assigns quantitative confidence scores ($0.0 - 1.0$) and categorical statuses:
-  - `CONFIDENT` ($\ge 0.85$): Clean extraction with confirmed answers.
-  - `PARTIALLY_EXTRACTED` ($0.70 - 0.84$): Minor formatting irregularities or inferred answers.
-  - `NEEDS_REVIEW` ($< 0.70$): Missing options, degraded scan, or ambiguous numbering.
-- Dedicated Review Queue: `GET /api/v1/documents/{id}/review-queue`.
-- Correction API: `PATCH /api/v1/questions/{id}` enables reviewers to edit, approve, and finalize questions.
-
-### 5. Enterprise Security
-- **Magic Byte Validation**: File headers are inspected at the byte level (`%PDF-`, `\x89PNG`, `\xff\xd8\xff`), preventing extension spoofing or malicious executable uploads.
-- **Storage Security**: Files are saved under random UUIDs with path traversal guards (`os.path.basename` and root containment verification).
-- **Authentication**: JWT Bearer token authentication with Role-Based Access Control (`admin`, `reviewer`, `user`).
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING: Document Uploaded (HTTP 202)
+    
+    state PROCESSING {
+        READING_FILE --> EXTRACTING_QUESTIONS: File Loaded
+        EXTRACTING_QUESTIONS --> ASSOCIATING_ANSWERS: Questions & Options Parsed
+        ASSOCIATING_ANSWERS --> VALIDATING: Answer Keys Aligned
+    }
+    
+    PENDING --> PROCESSING: Worker Picks Up Job
+    
+    VALIDATING --> COMPLETED: Confidence >= 0.85 & 0 Review Flags
+    VALIDATING --> NEEDS_REVIEW: Confidence < 0.70 OR Review Flags Present
+    
+    PROCESSING --> FAILED: Corrupted File / Engine Error
+    
+    NEEDS_REVIEW --> COMPLETED: Human Reviewer Approves via PATCH /questions/{id}
+    FAILED --> PENDING: Trigger POST /documents/{id}/reprocess
+    COMPLETED --> [*]
+```
 
 ---
 
-## Technology Choices & Rationales
+## 5. Core Intelligence Engines
 
-| Component | Technology | Rationale |
-| :--- | :--- | :--- |
-| **API Layer** | **FastAPI** | High-performance asynchronous endpoints, native OpenAPI/Swagger documentation, and Pydantic v2 data validation. |
-| **Persistent Storage** | **PostgreSQL 16** | Robust relational persistence for document metadata, questions, options, answer keys, and audit timestamps via SQLAlchemy 2.0. |
-| **Task Broker** | **Redis 7** | High-throughput in-memory broker for asynchronous job distribution and task state tracking. |
-| **Background Workers** | **Celery** | Distributed worker execution with retry policies, prefetch control, and concurrency management. |
-| **Multimodal AI** | **Google Gemini 3.8 Flash** | State-of-the-art vision understanding for scanned documents, tables, and mathematical formulas via the official `google-genai` SDK. |
-| **Local Fallback** | **pdfplumber & pypdf** | Zero-dependency, offline deterministic text and table extraction for tests and air-gapped environments. |
-| **Database Migrations**| **Alembic** | Automated version-controlled database schema migrations. |
+### 5.1 Dual-Engine Extraction Strategy
+
+To achieve high extraction accuracy while remaining **100% runnable offline**, the system employs a dual-engine architecture:
+
+```mermaid
+flowchart TD
+    Input["Document Bytes (PDF / Image)"] --> KeyCheck{"GEMINI_API_KEY Configured?"}
+    KeyCheck -->|Yes| GeminiEngine["Gemini 3.8 Flash Multimodal AI\n(google-genai SDK)"]
+    KeyCheck -->|No / Network Fallback| LocalEngine["Local Heuristic & PDFPlumber Engine\n(pypdf + pdfplumber + pillow)"]
+
+    GeminiEngine -->|Structured Output JSON| Normalizer["Standard ExtractedQuestion DTO"]
+    LocalEngine -->|Regex & Layout Extraction| Normalizer
+```
+
+- **Primary (Gemini 3.8 Flash)**: Reads full PDF/image bytes via `types.Part.from_bytes()`. Handles multi-column layouts, mathematical notation, tables, diagrams, and low-resolution scans with Pydantic-enforced structured JSON output.
+- **Secondary (Local Heuristic Engine)**: Extracts text page-by-page using `pdfplumber` and `pypdf`, extracts tables via `extract_tables()`, and applies regex heuristics. **Requires zero external API keys or cloud access.**
 
 ---
 
-## Quick Start Guide
+### 5.2 Cross-Page Question Stitching
+
+Examination questions frequently span page boundaries (e.g. question stem and options A/B on Page 1, options C/D on Page 2):
+
+```mermaid
+flowchart LR
+    subgraph Page1["Page 1"]
+        Q1Stem["1. Consider a distributed consensus algorithm..."]
+        OptA["(A) Absolute liveness..."]
+        OptB["(B) Deterministic consensus..."]
+    end
+
+    subgraph Page2["Page 2"]
+        OptC["(C) Safety is preserved..."]
+        OptD["(D) Fault tolerance..."]
+        Q2Stem["2. Which consistency model..."]
+    end
+
+    Q1Stem --> OptA --> OptB -->|Cross-Page Stitcher| OptC --> OptD
+    OptD --> FinalQ1["Unified Question 1\nsource_pages: [1, 2]\nOptions: [A, B, C, D]"]
+    Q2Stem --> FinalQ2["Question 2\nsource_pages: [2]"]
+```
+
+---
+
+### 5.3 Answer Key Association & Normalization
+
+The service accommodates all three standard answer key placements:
+1. **Inline / End of Document**: Header detection (`=== ANSWER KEY ===`, `SOLUTIONS:`, `KEY ANSWERS:`).
+2. **Separate Document**: Associated via `POST /api/v1/documents/{question_paper_id}/associate` with `relation_type="ANSWER_KEY_FOR"`.
+3. **Embedded Explanations**: Parses answers like `B (Explanation: 2x = 10 => x = 5)` into `normalized_answer = "B"` and `explanation = "2x = 10 => x = 5"`.
+
+```mermaid
+flowchart TD
+    RawAnswer["Raw Answer String: 'B (Explanation: 2x = 10 => x = 5)'"] --> Parser["parse_answer_and_explanation()"]
+    Parser --> NormAns["normalized_answer: 'B'"]
+    Parser --> Expl["explanation: '2x = 10 => x = 5'"]
+    
+    NormAns --> CheckOption{"Is 'B' present in Question Options?"}
+    CheckOption -->|Yes| Confirmed["status: CONFIRMED\nconfidence: 0.95"]
+    CheckOption -->|No| Uncertain["status: UNCERTAIN\nwarning: OPTION_NOT_FOUND\nconfidence: 0.50"]
+```
+
+---
+
+### 5.4 Confidence Scoring & Review Queue
+
+Questions are evaluated through an automated quality checklist:
+
+```mermaid
+flowchart TD
+    Q["Extracted Question"] --> CheckStem{"Stem Length >= 15 chars?"}
+    CheckStem -->|No| FlagShort["Add: SHORT_QUESTION_STEM\nScore -0.25"]
+    CheckStem -->|Yes| CheckOpts{"MCQ Options >= 3?"}
+    
+    FlagShort --> CheckOpts
+    CheckOpts -->|No| FlagOpts["Add: MISSING_OPTIONS\nScore -0.30"]
+    CheckOpts -->|Yes| CheckPages{"Spans > 1 page?"}
+    
+    FlagOpts --> CheckPages
+    CheckPages -->|Yes| FlagCross["Add: CROSS_PAGE_QUESTION\nScore -0.05"]
+    CheckPages -->|No| CheckAns{"Answer Key Status?"}
+    
+    FlagCross --> CheckAns
+    CheckAns -->|UNCERTAIN| FlagAns["Add: UNCERTAIN_ANSWER\nScore <= 0.68"]
+    CheckAns -->|NOT_FOUND| FlagUnmatched["Add: UNMATCHED_ANSWER"]
+    CheckAns -->|CONFIRMED| FinalScore["Calculate Final Score (0.0 - 1.0)"]
+    
+    FlagAns --> FinalScore
+    FlagUnmatched --> FinalScore
+    
+    FinalScore --> StatusCheck{"Final Score?"}
+    StatusCheck -->|">= 0.85"| Confident["status = CONFIDENT"]
+    StatusCheck -->|"0.70 - 0.84"| Partial["status = PARTIALLY_EXTRACTED"]
+    StatusCheck -->|"< 0.70"| NeedsReview["status = NEEDS_REVIEW\n(Added to Review Queue)"]
+```
+
+---
+
+## 6. Database Entity-Relationship Model
+
+```mermaid
+erDiagram
+    users ||--o{ documents : "uploads"
+    documents ||--o{ questions : "contains"
+    documents ||--o{ document_relations : "source_doc"
+    documents ||--o{ document_relations : "target_doc"
+    questions ||--o| answer_keys : "has"
+    documents ||--o{ answer_keys : "sources"
+
+    users {
+        string id PK "UUID"
+        string email UK "Indexed"
+        string hashed_password
+        string full_name
+        string role "admin / reviewer / user"
+        boolean is_active
+        datetime created_at
+    }
+
+    documents {
+        string id PK "UUID"
+        string user_id FK
+        string original_filename
+        string storage_path
+        string mime_type
+        bigint file_size_bytes
+        string file_hash "SHA-256"
+        int page_count
+        string status "PENDING / PROCESSING / COMPLETED / NEEDS_REVIEW / FAILED"
+        string stage "UPLOADED / EXTRACTING_QUESTIONS / ASSOCIATING_ANSWERS / DONE"
+        int progress_percent "0 to 100"
+        string document_type "QUESTION_PAPER / ANSWER_KEY / COMBINED"
+        json extraction_metadata
+        datetime created_at
+    }
+
+    questions {
+        string id PK "UUID"
+        string document_id FK
+        string question_number "1, Q.2, 11(a)"
+        text question_text
+        string question_type "MCQ / MULTI_SELECT / TRUE_FALSE / DESCRIPTIVE"
+        json options "[{key: 'A', text: '...'}]"
+        json source_pages "[1, 2]"
+        float confidence "0.0 to 1.0"
+        string status "CONFIDENT / PARTIALLY_EXTRACTED / NEEDS_REVIEW"
+        json review_reasons "['MISSING_OPTIONS', ...]"
+        boolean is_reviewed
+        text reviewer_notes
+        boolean has_tables
+        boolean has_images
+        datetime created_at
+    }
+
+    answer_keys {
+        string id PK "UUID"
+        string question_id FK "1-to-1 unique"
+        string source_document_id FK
+        text raw_answer "B (Explanation: ...)"
+        string normalized_answer "B"
+        text explanation
+        float confidence
+        string status "CONFIRMED / INFERRED / UNCERTAIN / NOT_FOUND"
+        int source_page
+        string association_method "INLINE_KEY_SECTION / SEPARATE_DOCUMENT"
+        json warnings
+    }
+
+    document_relations {
+        string id PK "UUID"
+        string source_document_id FK
+        string target_document_id FK
+        string relation_type "ANSWER_KEY_FOR / SUPPLEMENT_TO"
+        datetime created_at
+    }
+```
+
+---
+
+## 7. 10 Required Demonstration Scenarios
+
+All 10 required scenarios from the problem statement are implemented and verified via [`scripts/run_demo.py`](scripts/run_demo.py):
+
+```bash
+python scripts/run_demo.py
+```
+
+| # | Required Scenario | Sample Input File | Verification Evidence |
+| :---: | :--- | :--- | :--- |
+| **1** | **Uploading a PDF** | `samples/input/sample_1_standard_exam.pdf` | Returns HTTP 202 Accepted; extracts 3 MCQs with options and inline answer keys. |
+| **2** | **Uploading an Image** | `samples/input/sample_2_question_paper.png` | Validates PNG magic bytes (`\x89PNG`); extracts questions and visual metadata. |
+| **3** | **Scanned / Low-Quality Document** | `samples/input/sample_3_scanned_low_quality.jpg` | Detects degraded resolution; penalizes confidence; flags `NEEDS_REVIEW` (`LOW_RESOLUTION_IMAGE`). |
+| **4** | **Extracting Multiple Questions** | `samples/input/sample_4_multi_questions.pdf` | Extracts 10+ questions across diverse numbering formats (`1.`, `Q.2`, `4)`, `11(a)`). |
+| **5** | **Cross-Page Question Stitching** | `samples/input/sample_5_cross_page.pdf` | Stitches Question 1 across Page 1 and Page 2 (`source_pages: [1, 2]`, 4 options preserved). |
+| **6** | **Question Options & Tables** | `samples/input/sample_6_rich_options.pdf` | Detects embedded SQL table (`has_tables: True`); cleanly parses multi-line SQL query options. |
+| **7** | **Separate Answer Key Association** | `sample_7_separate_question_paper.pdf` + `sample_8_separate_answer_key.pdf` | Links separate documents via API; extracts explanation (`"2x = 10 => x = 5"`), aligns answers. |
+| **8** | **Low-Confidence / Review Queue** | `samples/input/sample_9_uncertain_low_confidence.pdf` | Incomplete options trigger `NEEDS_REVIEW` (`CRITICAL_MISSING_OPTIONS`, `SHORT_QUESTION_STEM`). |
+| **9** | **Structured Output Schema** | `samples/output/extracted_sample_1_questions.json` | Exports standardized, platform-independent JSON schema. |
+| **10** | **Invalid Document Rejection** | `samples/input/sample_10_malicious_disguised.pdf` | Rejects disguised PE executable via byte inspection with HTTP 400 Bad Request. |
+
+*Full evidence log is saved in [`demo_evidence.json`](demo_evidence.json).*
+
+---
+
+## 8. Quick Start Guide
 
 ### Option A: Docker Compose (Full Stack)
 
-The easiest way to run the complete production stack (FastAPI + Celery Worker + PostgreSQL 16 + Redis 7):
+The recommended way to run the complete production environment (FastAPI + Celery + PostgreSQL 16 + Redis 7):
 
 ```bash
 # 1. Clone the repository
 git clone https://github.com/bandelamahesh8/pnbc.git
 cd pnbc
 
-# 2. (Optional) Set your Gemini API key in .env for multimodal AI
-# If left unset, the service automatically uses its local extraction engine
+# 2. (Optional) Configure environment
 cp .env.example .env
 
-# 3. Start all services
+# 3. Start all services in the background
 docker-compose up --build -d
 
 # 4. Access the service
@@ -153,10 +431,10 @@ python -m venv .venv
 # 2. Install dependencies
 pip install -r requirements.txt
 
-# 3. Initialize the database
+# 3. Apply database migrations
 alembic upgrade head
 
-# 4. Start the FastAPI server
+# 4. Start the FastAPI application
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -167,34 +445,9 @@ uvicorn app.main:app --reload --port 8000
 
 ---
 
-## 10 Required Demonstration Scenarios
+## 9. Complete API Reference
 
-An automated demonstration script is included to verify all 10 required scenarios in one click:
-
-```bash
-python scripts/run_demo.py
-```
-
-| # | Scenario | Input File | Demonstrated Behavior |
-| :---: | :--- | :--- | :--- |
-| **1** | **Uploading a PDF** | `samples/input/sample_1_standard_exam.pdf` | Returns 202 Accepted, extracts 3 MCQs with options and inline answer keys. |
-| **2** | **Uploading an Image** | `samples/input/sample_2_question_paper.png` | Validates PNG magic bytes, extracts visual questions. |
-| **3** | **Scanned / Low-Quality Document** | `samples/input/sample_3_scanned_low_quality.jpg` | Detects degraded scan, scales down confidence, flags for review (`NEEDS_REVIEW`). |
-| **4** | **Extracting Multiple Questions** | `samples/input/sample_4_multi_questions.pdf` | Extracts 10+ questions across diverse numbering formats (`1.`, `Q.2`, `4)`, `11(a)`). |
-| **5** | **Cross-Page Question Stitching** | `samples/input/sample_5_cross_page.pdf` | Stitches Question 1 across Page 1 and Page 2 (`source_pages: [1, 2]`, 4 options). |
-| **6** | **Question Options & Tables** | `samples/input/sample_6_rich_options.pdf` | Parses SQL table (`has_tables: True`) and query options cleanly. |
-| **7** | **Separate Answer Key Association** | `samples/input/sample_7...pdf` + `sample_8...pdf` | Links separate answer key document via API, aligns answers and explanations. |
-| **8** | **Low-Confidence / Review Queue** | `samples/input/sample_9_uncertain_low_confidence.pdf` | Incomplete options trigger `NEEDS_REVIEW` with transparent reasons. |
-| **9** | **Structured Output Schema** | `samples/output/extracted_sample_1_questions.json` | Exports standardized, platform-independent JSON schema. |
-| **10** | **Invalid Document Rejection** | `samples/input/sample_10_malicious_disguised.pdf` | Rejects disguised binary payload via magic byte validation (HTTP 400). |
-
-*Full evaluation guide and expected JSON outputs are detailed in [`DEMO_GUIDE.md`](DEMO_GUIDE.md).*
-
----
-
-## API Specification & Endpoints
-
-Interactive documentation is available at **[http://localhost:8000/docs](http://localhost:8000/docs)** (Swagger UI) and **[http://localhost:8000/redoc](http://localhost:8000/redoc)**.
+Interactive Swagger documentation is available at **[http://localhost:8000/docs](http://localhost:8000/docs)**.
 
 | Category | Method | Endpoint | Description |
 | :--- | :--- | :--- | :--- |
@@ -203,9 +456,9 @@ Interactive documentation is available at **[http://localhost:8000/docs](http://
 | **Auth** | `POST` | `/api/v1/auth/login` | JSON body login (returns JWT Bearer token) |
 | **Auth** | `GET` | `/api/v1/auth/me` | Retrieve current authenticated user profile |
 | **Documents** | `POST` | `/api/v1/documents/upload` | Upload PDF or image (returns 202 Accepted) |
-| **Documents** | `GET` | `/api/v1/documents/{id}/status` | Check real-time processing status & progress % |
+| **Documents** | `GET` | `/api/v1/documents/{id}/status` | Check processing status, stage, & progress % |
 | **Documents** | `GET` | `/api/v1/documents` | List uploaded documents with pagination & filters |
-| **Documents** | `GET` | `/api/v1/documents/{id}` | Retrieve document metadata |
+| **Documents** | `GET` | `/api/v1/documents/{id}` | Retrieve full document metadata |
 | **Documents** | `GET` | `/api/v1/documents/{id}/questions` | Retrieve extracted questions with filters (`page`, `min_confidence`) |
 | **Documents** | `GET` | `/api/v1/documents/{id}/answer-key` | Retrieve answer key mapping |
 | **Documents** | `GET` | `/api/v1/documents/{id}/review-queue` | Retrieve questions flagged for human review |
@@ -215,15 +468,15 @@ Interactive documentation is available at **[http://localhost:8000/docs](http://
 | **Questions** | `GET` | `/api/v1/questions/{id}` | Retrieve individual question details |
 | **Questions** | `PATCH`| `/api/v1/questions/{id}` | Human-in-the-loop review/correction endpoint |
 | **Questions** | `GET` | `/api/v1/questions/review-queue` | Global review queue across all documents |
-| **System** | `GET` | `/api/v1/health` | Service health status (DB, Redis, Storage, AI engine) |
+| **System** | `GET` | `/api/v1/health` | Comprehensive health check (DB, Redis, Storage, AI engine) |
 
 > A ready-to-import Postman collection is provided in [`postman_collection.json`](postman_collection.json).
 
 ---
 
-## Testing & Quality Assurance
+## 10. Automated Testing & Verification
 
-The test suite covers unit, integration, and security tests:
+The test suite covers unit, integration, and security tests with **100% pass rate**:
 
 ```bash
 pytest tests/ -v
@@ -254,78 +507,28 @@ tests/test_storage_security.py::test_empty_file_rejected PASSED          [100%]
 
 ---
 
-## Project Layout
+## 11. Enterprise Security Posture
 
-```
-pnbc/
-├── app/
-│   ├── api/
-│   │   ├── v1/
-│   │   │   ├── endpoints/
-│   │   │   │   ├── auth.py          # User registration & JWT login
-│   │   │   │   ├── documents.py     # Document upload, status, questions, association
-│   │   │   │   ├── questions.py     # Question retrieval, review PATCH, global queue
-│   │   │   │   └── health.py        # System health check
-│   │   │   └── router.py            # API v1 route aggregator
-│   │   └── deps.py                  # Auth & DB dependencies
-│   ├── core/
-│   │   ├── config.py                # Pydantic-settings configuration
-│   │   ├── database.py              # Async & sync SQLAlchemy engine/sessions
-│   │   ├── security.py              # Bcrypt hashing & JWT signing
-│   │   ├── redis.py                 # Redis client
-│   │   └── exceptions.py            # Custom exceptions & RFC 7807 error handlers
-│   ├── models/                      # SQLAlchemy ORM models
-│   ├── schemas/                     # Pydantic v2 schemas
-│   ├── services/
-│   │   ├── storage.py               # Magic bytes validation & secure file storage
-│   │   ├── extraction/              # Document intelligence engine
-│   │   │   ├── base.py              # Abstract base extractor & DTOs
-│   │   │   ├── gemini_extractor.py  # Gemini 3.8 Flash multimodal extractor
-│   │   │   ├── rule_extractor.py    # Rule-based & layout analysis extractor
-│   │   │   ├── answer_matcher.py    # Answer key alignment & explanation parser
-│   │   │   └── validator.py         # Confidence scoring & review queue rules
-│   │   └── document_service.py      # Lifecycle & extraction coordinator
-│   ├── workers/                     # Celery & background tasks
-│   │   ├── celery_app.py            # Celery instance configuration
-│   │   └── tasks.py                 # Celery worker tasks & async dispatcher
-│   └── main.py                      # FastAPI application entry point
-├── alembic/                         # Database migrations
-├── samples/
-│   ├── input/                       # 10 sample files for all evaluation scenarios
-│   └── output/                      # Extracted structured JSON outputs
-├── scripts/
-│   ├── generate_sample_docs.py      # Script generating realistic test PDFs & images
-│   ├── run_demo.py                  # One-click demonstration runner
-│   └── export_openapi.py            # Script exporting openapi.json
-├── tests/                           # Pytest test suite (18 tests, 100% pass)
-├── docker-compose.yml               # Multi-container orchestration (API, Worker, Postgres, Redis)
-├── Dockerfile                       # Production container definition
-├── ARCHITECTURE.md                  # Comprehensive architectural design & diagrams
-├── DEMO_GUIDE.md                    # Detailed guide for evaluating all 10 scenarios
-├── postman_collection.json          # Complete Postman API collection
-├── openapi.json                     # OpenAPI 3.1 specification
-├── demo_evidence.json               # Recorded evidence of all 10 demonstration scenarios
-└── requirements.txt                 # Project dependencies
-```
+1. **Magic Byte Verification**: File contents are inspected at the byte level (`%PDF-`, `\x89PNG`, `\xff\xd8\xff`). Disguised executable files (e.g. `.exe` renamed to `.pdf`) are rejected before any processing occurs.
+2. **Storage Isolation**: Files are stored using random UUID filenames in a dedicated directory. Path traversal attempts (`../../etc/passwd`) are sanitized and rejected.
+3. **Authentication & Tenant Isolation**: Standard JWT Bearer token authentication. Non-admin users are strictly restricted to their own uploaded documents.
+4. **Credential Protection**: Zero hardcoded credentials. All configuration is loaded from `.env` via Pydantic settings.
 
 ---
 
-## Design Decisions & Trade-Offs
+## 12. Engineering Trade-Offs
 
-1. **Dual Extraction Strategy**:
-   - *Decision*: Supporting both Google Gemini 3.8 Flash and a local deterministic engine.
-   - *Trade-off*: Adds codebase complexity compared to a cloud-only pipeline.
-   - *Rationale*: Guarantees that the evaluation team can run the entire system, tests, and demonstration **100% offline out-of-the-box** without API key or quota constraints, while setting `GEMINI_API_KEY` seamlessly activates the full multimodal vision AI.
+1. **Dual-Engine Architecture vs. Cloud-Only**:
+   - *Trade-off*: Maintaining both a Gemini vision pipeline and a local deterministic parser adds codebase complexity.
+   - *Rationale*: Guarantees that the evaluation team can run the entire system, tests, and demonstration **100% offline out-of-the-box** without API key or quota constraints, while setting `GEMINI_API_KEY` seamlessly activates multimodal vision AI.
 
-2. **Asynchronous Architecture with Fallback**:
-   - *Decision*: Redis + Celery for production, with an automatic in-process `BackgroundTasks` fallback.
-   - *Trade-off*: Managing two execution paths.
+2. **Asynchronous Processing with Standalone Fallback**:
+   - *Trade-off*: Supporting both distributed Celery/Redis and in-process `BackgroundTasks`.
    - *Rationale*: Allows single-process local development and testing without spinning up Redis or Celery, while supporting multi-container horizontal scaling in Docker Compose.
 
 3. **Explicit Uncertainty over Silent Misassignment**:
-   - *Decision*: If an answer key references a missing option or cannot be found, the system flags `status="UNCERTAIN"` or `"NOT_FOUND"`.
-   - *Trade-off*: Requires downstream platforms to handle unassigned answers.
-   - *Rationale*: In examination contexts, silently assigning an incorrect answer compromises assessment integrity.
+   - *Trade-off*: Downstream consumers must handle unassigned or uncertain answers.
+   - *Rationale*: In examination contexts, silently assigning an incorrect answer compromises assessment integrity. The system flags uncertainty explicitly.
 
 ---
 
