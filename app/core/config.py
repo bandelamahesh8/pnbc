@@ -50,7 +50,7 @@ class Settings(BaseSettings):
         default=None,
         description="Google Gemini API key for multimodal document intelligence"
     )
-    GEMINI_MODEL: str = "gemini-3.8-flash"
+    GEMINI_MODEL: str = "gemini-3.5-flash"
 
     # Storage & Upload Rules
     STORAGE_DIR: str = "data/uploads"
